@@ -1,4 +1,4 @@
-# Scrubadub 🦆
+# scrub-a-dub 🦆
 
 A macOS menu-bar utility that strips terminal-width padding from Claude Code CLI output (and any other right-padded terminal text). Paste in, cleaned text auto-replaces your clipboard, paste out.
 
