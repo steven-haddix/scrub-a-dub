@@ -155,6 +155,52 @@ struct CleanerTests {
         #expect(r.cleaned == "Sentence with comma,\ncontinuation here.")
     }
 
+    @Test("does NOT join line-numbered diff/code listing lines")
+    func keepsLineNumberedSeparate() {
+        let pad = String(repeating: " ", count: 200)
+        let input = [
+            "     17              let url = Bundle.module.url(forResource: \"Duck\", withExtension: \"png\"),\(pad)",
+            "     18 -            let img = NSImage(contentsOf: url)\(pad)",
+            "     18 +            let original = NSImage(contentsOf: url)\(pad)",
+            "     19          else { return nil }",
+        ].joined(separator: "\n")
+        let r = Cleaner.clean(input)
+        let lines = r.cleaned.components(separatedBy: "\n")
+        #expect(lines.count == 4)
+        #expect(lines[0].hasSuffix("\"png\"),"))
+        #expect(lines[1].contains("- "))
+        #expect(lines[2].contains("+ "))
+    }
+
+    @Test("does NOT join lines starting with Claude tool markers (⏺, ⎿)")
+    func keepsClaudeToolMarkersSeparate() {
+        let pad = String(repeating: " ", count: 200)
+        let input = [
+            "⏺ Write(Sources/Scrubadub/MenuBar/MenuBarIcon.swift)\(pad)",
+            "  ⎿  Added 16 lines, removed 4 lines\(pad)",
+            "      15      private static func makeTemplate(size: CGFloat) -> NSImage? {",
+        ].joined(separator: "\n")
+        let r = Cleaner.clean(input)
+        let lines = r.cleaned.components(separatedBy: "\n")
+        #expect(lines.count == 3)
+        #expect(lines[0].hasPrefix("⏺ Write"))
+        #expect(lines[1].hasPrefix("  ⎿"))
+    }
+
+    @Test("does NOT join across @@ diff hunk markers")
+    func keepsDiffHunkSeparate() {
+        let pad = String(repeating: " ", count: 200)
+        let input = [
+            "Some long context line that wraps near terminal width without a sentence period at the end\(pad)",
+            "@@ -10,5 +10,7 @@\(pad)",
+            "next line",
+        ].joined(separator: "\n")
+        let r = Cleaner.clean(input)
+        let lines = r.cleaned.components(separatedBy: "\n")
+        #expect(lines.count == 3)
+        #expect(lines[1].hasPrefix("@@"))
+    }
+
     @Test("does NOT join across blank lines")
     func keepsParagraphsAcrossBlanks() {
         let pad = String(repeating: " ", count: 200)

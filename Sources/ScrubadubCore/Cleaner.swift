@@ -7,6 +7,12 @@ public enum Cleaner {
         "╔", "╗", "╚", "╝", "╠", "╣", "╦", "╩", "╬",
     ]
     private static let gutterChars: Set<Character> = ["│", "┃", "║"]
+    private static let structuralLineStarts: Set<Character> = [
+        "╭", "╮", "╰", "╯", "─", "━", "═", "┄", "┅", "│", "┃", "║",
+        "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼",
+        "╔", "╗", "╚", "╝", "╠", "╣", "╦", "╩", "╬",
+        "⎿", "⏺", "⎾", "▶", "▷", "▸", "✓", "✗", "✘",
+    ]
     private static let closingPunctuation: Set<Character> = [
         "\"", "'", "”", "’", ")", "]", "»", "›", "”", "›",
     ]
@@ -116,6 +122,8 @@ public enum Cleaner {
         if isStructuralLine(prev) || isStructuralLine(curr) { return false }
         if startsWithListMarker(curr) { return false }
         if startsWithHeading(curr) { return false }
+        if startsWithLineNumber(prev) || startsWithLineNumber(curr) { return false }
+        if startsWithDiffHunk(prev) || startsWithDiffHunk(curr) { return false }
         return true
     }
 
@@ -159,6 +167,24 @@ public enum Cleaner {
     private static func isStructuralLine(_ s: String) -> Bool {
         let trimmed = s.drop(while: \.isWhitespace)
         guard let first = trimmed.first else { return false }
-        return borderChars.contains(first)
+        return structuralLineStarts.contains(first)
+    }
+
+    private static func startsWithLineNumber(_ s: String) -> Bool {
+        let trimmed = s.drop(while: \.isWhitespace)
+        guard let first = trimmed.first, first.isNumber else { return false }
+        var idx = trimmed.startIndex
+        while idx < trimmed.endIndex, trimmed[idx].isNumber {
+            idx = trimmed.index(after: idx)
+        }
+        guard idx < trimmed.endIndex else { return false }
+        let next = trimmed[idx]
+        if next == "." || next == ")" { return false }
+        return next.isWhitespace
+    }
+
+    private static func startsWithDiffHunk(_ s: String) -> Bool {
+        let trimmed = s.drop(while: \.isWhitespace)
+        return trimmed.hasPrefix("@@")
     }
 }

@@ -1,0 +1,219 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without the leading v, for example 0.1.0"
+        required: true
+        type: string
+      build_number:
+        description: "Build number. Defaults to the GitHub run number."
+        required: false
+        type: string
+      notarize:
+        description: "Sign with Developer ID and notarize the app"
+        required: true
+        default: true
+        type: boolean
+      draft:
+        description: "Create the GitHub release as a draft"
+        required: true
+        default: false
+        type: boolean
+      prerelease:
+        description: "Mark the GitHub release as a prerelease"
+        required: true
+        default: false
+        type: boolean
+      publish_tap:
+        description: "Push the generated cask to the Homebrew tap"
+        required: true
+        default: false
+        type: boolean
+      tap_repository:
+        description: "Homebrew tap repository"
+        required: true
+        default: "steven-haddix/homebrew-tap"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and Publish
+    runs-on: macos-15
+    env:
+      VERSION: ${{ github.event.inputs.version }}
+      BUILD_NUMBER_INPUT: ${{ github.event.inputs.build_number }}
+      SHOULD_NOTARIZE: ${{ github.event.inputs.notarize }}
+      SHOULD_DRAFT: ${{ github.event.inputs.draft }}
+      SHOULD_PRERELEASE: ${{ github.event.inputs.prerelease }}
+      SHOULD_PUBLISH_TAP: ${{ github.event.inputs.publish_tap }}
+      TAP_REPOSITORY: ${{ github.event.inputs.tap_repository }}
+      HAS_SIGNING_SECRETS: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 != '' && secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD != '' && secrets.DEVELOPER_ID_APPLICATION != '' }}
+      HAS_NOTARY_SECRETS: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 != '' && secrets.APP_STORE_CONNECT_KEY_ID != '' && secrets.APP_STORE_CONNECT_ISSUER_ID != '' }}
+      HAS_TAP_SECRET: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate release inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$VERSION" =~ ^[0-9]+(\.[0-9]+){1,2}([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Version must look like 0.1.0 and must not include a leading v." >&2
+            exit 1
+          fi
+
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "Release v${VERSION} already exists." >&2
+            exit 1
+          fi
+
+          if [[ "$SHOULD_NOTARIZE" == "true" ]]; then
+            if [[ "$HAS_SIGNING_SECRETS" != "true" ]]; then
+              echo "Notarized releases require APPLE_DEVELOPER_ID_CERTIFICATE_BASE64, APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD, and DEVELOPER_ID_APPLICATION secrets." >&2
+              exit 1
+            fi
+            if [[ "$HAS_NOTARY_SECRETS" != "true" ]]; then
+              echo "Notarized releases require APP_STORE_CONNECT_API_KEY_P8, APP_STORE_CONNECT_KEY_ID, and APP_STORE_CONNECT_ISSUER_ID secrets." >&2
+              exit 1
+            fi
+          fi
+
+          if [[ "$SHOULD_PUBLISH_TAP" == "true" && "$HAS_TAP_SECRET" != "true" ]]; then
+            echo "Publishing the tap requires the HOMEBREW_TAP_TOKEN secret." >&2
+            exit 1
+          fi
+
+          if [[ "$SHOULD_PUBLISH_TAP" == "true" && "$SHOULD_DRAFT" == "true" ]]; then
+            echo "Do not publish the Homebrew tap for a draft release; the cask asset URL will not be publicly installable." >&2
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Set release version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUILD_NUMBER="${BUILD_NUMBER_INPUT:-${GITHUB_RUN_NUMBER}}"
+          printf 'MARKETING_VERSION=%s\nBUILD_NUMBER=%s\n' "$VERSION" "$BUILD_NUMBER" > version.env
+
+          cat version.env
+
+      - name: Import Developer ID certificate
+        if: ${{ github.event.inputs.notarize == 'true' }}
+        shell: bash
+        env:
+          APPLE_DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 }}
+          APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+
+          CERTIFICATE_PATH="$RUNNER_TEMP/developer-id.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/scrubadub-signing.keychain-db"
+
+          printf '%s' "$APPLE_DEVELOPER_ID_CERTIFICATE_BASE64" | base64 -D > "$CERTIFICATE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" \
+            -P "$APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD" \
+            -k "$KEYCHAIN_PATH" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/"//g')
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Test
+        run: swift test
+
+      - name: Package app
+        shell: bash
+        env:
+          CODESIGN_IDENTITY: ${{ github.event.inputs.notarize == 'true' && secrets.DEVELOPER_ID_APPLICATION || '' }}
+          NOTARIZE: ${{ github.event.inputs.notarize == 'true' && '1' || '0' }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: Scripts/package_app.sh release
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Scrubadub-${{ github.event.inputs.version }}
+          path: |
+            dist/Scrubadub-${{ github.event.inputs.version }}.zip
+            dist/Scrubadub-${{ github.event.inputs.version }}.zip.sha256
+            dist/homebrew/scrubadub.rb
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          args=(
+            "v${VERSION}"
+            "dist/Scrubadub-${VERSION}.zip"
+            "dist/Scrubadub-${VERSION}.zip.sha256"
+            --title "v${VERSION}"
+            --notes-file CHANGELOG.md
+            --target "$GITHUB_SHA"
+          )
+
+          if [[ "$SHOULD_DRAFT" == "true" ]]; then
+            args+=(--draft)
+          fi
+
+          if [[ "$SHOULD_PRERELEASE" == "true" ]]; then
+            args+=(--prerelease)
+          fi
+
+          gh release create "${args[@]}"
+
+      - name: Checkout Homebrew tap
+        if: ${{ github.event.inputs.publish_tap == 'true' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.inputs.tap_repository }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Publish Homebrew cask
+        if: ${{ github.event.inputs.publish_tap == 'true' }}
+        shell: bash
+        working-directory: homebrew-tap
+        run: |
+          set -euo pipefail
+
+          mkdir -p Casks
+          cp ../dist/homebrew/scrubadub.rb Casks/scrubadub.rb
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/scrubadub.rb
+
+          if git diff --cached --quiet; then
+            echo "Homebrew cask is already up to date."
+            exit 0
+          fi
+
+          git commit -m "chore: update Scrubadub cask to v${VERSION}"
+          git push

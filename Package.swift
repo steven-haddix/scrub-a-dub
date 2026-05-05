@@ -6,7 +6,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .executable(name: "Scrubadub", targets: ["Scrubadub"]),
-        .executable(name: "scrubadub-cli", targets: ["scrubadub-cli"]),
+        .executable(name: "scrubadub", targets: ["scrubadub-cli"]),
         .library(name: "ScrubadubCore", targets: ["ScrubadubCore"]),
     ],
     targets: [

@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 struct MenuBarIcon: View {
-    var size: CGFloat = 18
+    var size: CGFloat = 22
 
     var body: some View {
         if let image = Self.makeTemplate(size: size) {
@@ -14,7 +14,7 @@ struct MenuBarIcon: View {
 
     private static func makeTemplate(size: CGFloat) -> NSImage? {
         guard
-            let url = Bundle.module.url(forResource: "Duck", withExtension: "png"),
+            let url = Self.duckImageURL,
             let original = NSImage(contentsOf: url),
             let mask = Self.makeAlphaMask(from: original)
         else { return nil }
@@ -45,6 +45,11 @@ struct MenuBarIcon: View {
         return resized
     }
 
+    private static var duckImageURL: URL? {
+        Bundle.main.url(forResource: "Duck", withExtension: "png")
+            ?? Bundle.module.url(forResource: "Duck", withExtension: "png")
+    }
+
     private static func makeAlphaMask(from image: NSImage) -> NSImage? {
         var proposedRect = NSRect(origin: .zero, size: image.size)
         guard let cgImage = image.cgImage(forProposedRect: &proposedRect, context: nil, hints: nil) else {
@@ -73,6 +78,7 @@ struct MenuBarIcon: View {
 
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
+        // Menu bar template images use alpha as their shape; the bundled duck currently has an opaque checkerboard.
         let hasUsableAlpha = stride(from: 3, to: sourcePixels.count, by: bytesPerPixel)
             .contains { sourcePixels[$0] < 250 }
         let threshold = hasUsableAlpha ? 0 : Self.backgroundLuminanceThreshold(
