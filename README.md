@@ -60,6 +60,13 @@ You can also clean a file:
 scrubadub < messy-output.txt > clean-output.txt
 ```
 
+Check the installed version or show CLI help:
+
+```bash
+scrubadub --version
+scrubadub --help
+```
+
 ## What Gets Cleaned
 
 Always:

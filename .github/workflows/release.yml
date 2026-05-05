@@ -109,9 +109,10 @@ jobs:
           set -euo pipefail
 
           BUILD_NUMBER="${BUILD_NUMBER_INPUT:-${GITHUB_RUN_NUMBER}}"
-          printf 'MARKETING_VERSION=%s\nBUILD_NUMBER=%s\n' "$VERSION" "$BUILD_NUMBER" > version.env
+          Scripts/set_release_version.sh "$VERSION" "$BUILD_NUMBER"
 
           cat version.env
+          cat Sources/ScrubadubCore/ScrubadubVersion.swift
 
       - name: Import Developer ID certificate
         if: ${{ github.event.inputs.notarize == 'true' }}

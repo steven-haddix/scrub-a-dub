@@ -1,4 +1,5 @@
 import SwiftUI
+import ScrubadubCore
 
 struct SettingsView: View {
     @Bindable var settings: SettingsStore
@@ -38,7 +39,7 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
             Section("About") {
-                LabeledContent("Version", value: "0.1.0")
+                LabeledContent("Version", value: ScrubadubVersion.current)
                 Text("Trailing whitespace per line is always stripped — that's the whole job.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

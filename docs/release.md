@@ -39,15 +39,17 @@ base64 -i DeveloperIDApplication.p12 | pbcopy
 ```
 
 The workflow runs tests, builds a universal app, signs/notarizes it, creates the GitHub release, uploads the zip/SHA assets, and optionally updates the Homebrew cask.
+The workflow writes `version.env` and `Sources/ScrubadubCore/ScrubadubVersion.swift` from the `version` input before building, so release metadata does not need to be committed ahead of time.
 
 ## Local Release
 
-Update `version.env` and `CHANGELOG.md`, then run:
+Update `CHANGELOG.md`, then run:
 
 ```bash
 CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 NOTARIZE=1 \
 NOTARY_PROFILE="Scrubadub Notary" \
+VERSION=0.2.0 \
 Scripts/release.sh
 ```
 
