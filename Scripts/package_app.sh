@@ -31,17 +31,19 @@ fi
 
 log "==> Building ${APP_NAME} (${CONFIGURATION})"
 swift build -c "$CONFIGURATION" "${ARCH_ARGS[@]}" --product "$APP_NAME"
-swift build -c "$CONFIGURATION" "${ARCH_ARGS[@]}" --product "$CLI_NAME"
 BIN_DIR="$(swift build -c "$CONFIGURATION" "${ARCH_ARGS[@]}" --show-bin-path)"
-
 APP_EXECUTABLE="$BIN_DIR/$APP_NAME"
-CLI_EXECUTABLE="$BIN_DIR/$CLI_NAME"
 RESOURCE_BUNDLE="$BIN_DIR/${APP_NAME}_${APP_NAME}.bundle"
+STAGED_APP_EXECUTABLE="$ROOT_DIR/.build/${APP_NAME}-app-executable"
+cp "$APP_EXECUTABLE" "$STAGED_APP_EXECUTABLE"
+
+swift build -c "$CONFIGURATION" "${ARCH_ARGS[@]}" --product "$CLI_NAME"
+CLI_EXECUTABLE="$BIN_DIR/$CLI_NAME"
 APP_BUNDLE="$ROOT_DIR/dist/$APP_NAME.app"
 ZIP_PATH="$ROOT_DIR/dist/${APP_NAME}-${MARKETING_VERSION}.zip"
 SHA_PATH="${ZIP_PATH}.sha256"
 
-[[ -x "$APP_EXECUTABLE" ]] || fail "missing app executable: $APP_EXECUTABLE"
+[[ -x "$STAGED_APP_EXECUTABLE" ]] || fail "missing app executable: $STAGED_APP_EXECUTABLE"
 [[ -x "$CLI_EXECUTABLE" ]] || fail "missing CLI executable: $CLI_EXECUTABLE"
 
 log "==> Creating app bundle: $APP_BUNDLE"
@@ -51,7 +53,7 @@ mkdir -p \
   "$APP_BUNDLE/Contents/Helpers" \
   "$APP_BUNDLE/Contents/Resources"
 
-cp "$APP_EXECUTABLE" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+cp "$STAGED_APP_EXECUTABLE" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 cp "$CLI_EXECUTABLE" "$APP_BUNDLE/Contents/Helpers/$CLI_NAME"
 chmod +x "$APP_BUNDLE/Contents/MacOS/$APP_NAME" "$APP_BUNDLE/Contents/Helpers/$CLI_NAME"
 
