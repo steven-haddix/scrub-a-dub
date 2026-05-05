@@ -3,6 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
+
+if [[ -n "${VERSION:-}" ]]; then
+  "$ROOT_DIR/Scripts/set_release_version.sh" "$VERSION" "${BUILD_NUMBER:-1}"
+fi
+
 source "$ROOT_DIR/version.env"
 
 swift test

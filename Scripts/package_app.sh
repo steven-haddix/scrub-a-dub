@@ -10,6 +10,10 @@ BUNDLE_ID="${BUNDLE_ID:-com.stevenhaddix.scrubadub}"
 cd "$ROOT_DIR"
 source "$ROOT_DIR/version.env"
 
+SOURCE_VERSION="$(
+  sed -nE 's/.*current = "([^"]+)".*/\1/p' "$ROOT_DIR/Sources/ScrubadubCore/ScrubadubVersion.swift"
+)"
+
 log() {
   printf '%s\n' "$*"
 }
@@ -24,20 +28,31 @@ case "$CONFIGURATION" in
   *) fail "configuration must be debug or release" ;;
 esac
 
+[[ -n "$SOURCE_VERSION" ]] || fail "could not read ScrubadubVersion.current"
+[[ "$SOURCE_VERSION" == "$MARKETING_VERSION" ]] || fail "ScrubadubVersion.current ($SOURCE_VERSION) does not match MARKETING_VERSION ($MARKETING_VERSION)"
+
 ARCH_ARGS=()
 if [[ "$CONFIGURATION" == "release" && "${UNIVERSAL:-1}" == "1" ]]; then
   ARCH_ARGS=(--arch arm64 --arch x86_64)
 fi
 
+swift_build() {
+  if [[ ${#ARCH_ARGS[@]} -gt 0 ]]; then
+    swift build -c "$CONFIGURATION" "${ARCH_ARGS[@]}" "$@"
+  else
+    swift build -c "$CONFIGURATION" "$@"
+  fi
+}
+
 log "==> Building ${APP_NAME} (${CONFIGURATION})"
-swift build -c "$CONFIGURATION" "${ARCH_ARGS[@]}" --product "$APP_NAME"
-BIN_DIR="$(swift build -c "$CONFIGURATION" "${ARCH_ARGS[@]}" --show-bin-path)"
+swift_build --product "$APP_NAME"
+BIN_DIR="$(swift_build --show-bin-path)"
 APP_EXECUTABLE="$BIN_DIR/$APP_NAME"
 RESOURCE_BUNDLE="$BIN_DIR/${APP_NAME}_${APP_NAME}.bundle"
 STAGED_APP_EXECUTABLE="$ROOT_DIR/.build/${APP_NAME}-app-executable"
 cp "$APP_EXECUTABLE" "$STAGED_APP_EXECUTABLE"
 
-swift build -c "$CONFIGURATION" "${ARCH_ARGS[@]}" --product "$CLI_NAME"
+swift_build --product "$CLI_NAME"
 CLI_EXECUTABLE="$BIN_DIR/$CLI_NAME"
 APP_BUNDLE="$ROOT_DIR/dist/$APP_NAME.app"
 ZIP_PATH="$ROOT_DIR/dist/${APP_NAME}-${MARKETING_VERSION}.zip"
