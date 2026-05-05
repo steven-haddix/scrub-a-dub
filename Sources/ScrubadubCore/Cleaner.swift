@@ -28,6 +28,10 @@ public enum Cleaner {
         var lines = splitLines(working)
         lines = lines.map(stripTrailing)
 
+        if options.dedentCommonLeadingWhitespace {
+            lines = dedentCommonLeadingWhitespace(lines)
+        }
+
         if options.unwrapHardWrapped {
             lines = unwrapHardWrapped(lines)
         }
@@ -69,6 +73,31 @@ public enum Cleaner {
         var l = line
         while let last = l.last, last.isWhitespace { l.removeLast() }
         return l
+    }
+
+    private static func dedentCommonLeadingWhitespace(_ lines: [String]) -> [String] {
+        let contentLines = lines.filter { !$0.isEmpty }
+        guard let commonCount = contentLines.map(leadingWhitespaceCount).min(), commonCount > 0 else {
+            return lines
+        }
+
+        return lines.map { line in
+            guard !line.isEmpty else { return line }
+            var index = line.startIndex
+            for _ in 0..<commonCount {
+                index = line.index(after: index)
+            }
+            return String(line[index...])
+        }
+    }
+
+    private static func leadingWhitespaceCount(_ line: String) -> Int {
+        var count = 0
+        for character in line {
+            guard character.isWhitespace else { break }
+            count += 1
+        }
+        return count
     }
 
     private static func stripBoxDrawing(_ line: String) -> String? {

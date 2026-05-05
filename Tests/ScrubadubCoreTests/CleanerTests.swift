@@ -22,7 +22,12 @@ struct CleanerTests {
     @Test("trims leading and trailing blank lines when normalizeBlankLines is on")
     func trimsOuterBlanks() {
         let input = "   \n\n  hello  \n\n   "
-        let r = Cleaner.clean(input, options: CleanerOptions(stripAnsi: false, normalizeBlankLines: true, unwrapHardWrapped: false))
+        let r = Cleaner.clean(input, options: CleanerOptions(
+            stripAnsi: false,
+            normalizeBlankLines: true,
+            unwrapHardWrapped: false,
+            dedentCommonLeadingWhitespace: false
+        ))
         #expect(r.cleaned == "  hello")
     }
 
@@ -52,8 +57,59 @@ struct CleanerTests {
     @Test("preserves indentation on bullet lines")
     func preservesIndentation() {
         let input = "  - item one    \n  - item two   "
-        let r = Cleaner.clean(input, options: CleanerOptions(unwrapHardWrapped: false))
+        let r = Cleaner.clean(input, options: CleanerOptions(unwrapHardWrapped: false, dedentCommonLeadingWhitespace: false))
         #expect(r.cleaned == "  - item one\n  - item two")
+    }
+
+    @Test("dedents common leading whitespace when enabled")
+    func dedentsCommonLeadingWhitespace() {
+        let input = """
+                    if value {
+                        print(value)
+                    }
+        """
+        let r = Cleaner.clean(input, options: CleanerOptions(
+            stripAnsi: false,
+            normalizeBlankLines: false,
+            unwrapHardWrapped: false,
+            dedentCommonLeadingWhitespace: true
+        ))
+        #expect(r.cleaned == "if value {\n    print(value)\n}")
+    }
+
+    @Test("dedent ignores blank lines and keeps relative indentation")
+    func dedentIgnoresBlankLines() {
+        let input = "        first\n\n            second\n        third"
+        let r = Cleaner.clean(input, options: CleanerOptions(
+            stripAnsi: false,
+            normalizeBlankLines: false,
+            unwrapHardWrapped: false,
+            dedentCommonLeadingWhitespace: true
+        ))
+        #expect(r.cleaned == "first\n\n    second\nthird")
+    }
+
+    @Test("dedent is on by default")
+    func dedentDefaultsOn() {
+        let input = "    first\n        second"
+        let r = Cleaner.clean(input, options: CleanerOptions(
+            stripAnsi: false,
+            normalizeBlankLines: false,
+            unwrapHardWrapped: false
+        ))
+        #expect(r.cleaned == "first\n    second")
+    }
+
+    @Test("dedent can be disabled")
+    func dedentDisabled() {
+        let input = "    first\n        second"
+        let r = Cleaner.clean(input, options: CleanerOptions(
+            stripAnsi: false,
+            normalizeBlankLines: false,
+            unwrapHardWrapped: false,
+            dedentCommonLeadingWhitespace: false
+        ))
+        #expect(r.cleaned == "    first\n        second")
     }
 
     @Test("strips box-drawing pure-border lines and leading gutters")
@@ -96,7 +152,7 @@ struct CleanerTests {
         ].joined(separator: "\n")
 
         let r = Cleaner.clean(input)
-        #expect(r.cleaned == "  TL;DR: long sentence that wraps because terminal too narrow (Sarah_Ad_v2, Aging_04282026), so paid-social caretaker signups are effectively dead-on-arrival.")
+        #expect(r.cleaned == "TL;DR: long sentence that wraps because terminal too narrow (Sarah_Ad_v2, Aging_04282026), so paid-social caretaker signups are effectively dead-on-arrival.")
     }
 
     @Test("does NOT join across bullet boundaries")
@@ -109,8 +165,8 @@ struct CleanerTests {
         let r = Cleaner.clean(input)
         let lines = r.cleaned.components(separatedBy: "\n")
         #expect(lines.count == 2)
-        #expect(lines[0].hasPrefix("  - First bullet"))
-        #expect(lines[1].hasPrefix("  - Second bullet"))
+        #expect(lines[0].hasPrefix("- First bullet"))
+        #expect(lines[1].hasPrefix("- Second bullet"))
     }
 
     @Test("does NOT join when previous line ends with sentence period")
@@ -229,12 +285,12 @@ struct CleanerTests {
         ].joined(separator: "\n")
 
         let expected = [
-            "  Pattern confirmation",
+            "Pattern confirmation",
             "",
-            "  - Every FB/IG event lands on /signup?action=signup&jid=… — the caretaker invite flow (jid = invite token).",
-            "  - 3 events carry paid-ad UTMs directly (#4 Instagram_Feed/Aging_04282026, #6 Instagram_Reels/Sarah_Ad_v2, #8 Facebook_Mobile_Feed/Sarah_Ad_v2). The other 5 have no UTM but arrived via FB/IG in-app browsers — likely organic shares of the invite link opened inside the Facebook/Instagram apps.",
-            "  - Event #1 and #2 are the same session 35 seconds apart — user got interaction_in_progress, presumably retried, hit timed_out. So 7 errors represent ~7 distinct attempted signups.",
-            "  - #3 (Edge / copilot.com) is the outlier — desktop Edge with utm_source=copilot.com is almost certainly Microsoft Copilot prefetching/agent-fetching the URL, not a human attempting signup.",
+            "- Every FB/IG event lands on /signup?action=signup&jid=… — the caretaker invite flow (jid = invite token).",
+            "- 3 events carry paid-ad UTMs directly (#4 Instagram_Feed/Aging_04282026, #6 Instagram_Reels/Sarah_Ad_v2, #8 Facebook_Mobile_Feed/Sarah_Ad_v2). The other 5 have no UTM but arrived via FB/IG in-app browsers — likely organic shares of the invite link opened inside the Facebook/Instagram apps.",
+            "- Event #1 and #2 are the same session 35 seconds apart — user got interaction_in_progress, presumably retried, hit timed_out. So 7 errors represent ~7 distinct attempted signups.",
+            "- #3 (Edge / copilot.com) is the outlier — desktop Edge with utm_source=copilot.com is almost certainly Microsoft Copilot prefetching/agent-fetching the URL, not a human attempting signup.",
         ].joined(separator: "\n")
 
         let r = Cleaner.clean(input)

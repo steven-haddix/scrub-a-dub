@@ -22,6 +22,10 @@ struct SettingsView: View {
                 Text("Turns long runs of blank lines into a single blank line.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("Remove common left padding", isOn: $settings.dedentCommonLeadingWhitespace)
+                Text("Shifts copied blocks left when every non-empty line starts with the same leading whitespace.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Toggle("Strip box-drawing borders & gutters", isOn: $settings.stripBoxDrawing)
                 Text("Removes common terminal box borders and margin gutters from copied output.")
                     .font(.caption)
@@ -41,6 +45,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 540)
+        .frame(width: 480, height: 590)
     }
 }

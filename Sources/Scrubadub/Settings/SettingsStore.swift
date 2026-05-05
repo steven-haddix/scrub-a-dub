@@ -12,6 +12,7 @@ final class SettingsStore {
         static let collapseBlankRuns = "collapseBlankRuns"
         static let stripBoxDrawing = "stripBoxDrawing"
         static let unwrapHardWrapped = "unwrapHardWrapped"
+        static let dedentCommonLeadingWhitespace = "dedentCommonLeadingWhitespace"
         static let autoWatch = "autoWatch"
     }
 
@@ -20,6 +21,7 @@ final class SettingsStore {
     var collapseBlankRuns: Bool { didSet { UserDefaults.standard.set(collapseBlankRuns, forKey: Key.collapseBlankRuns) } }
     var stripBoxDrawing: Bool { didSet { UserDefaults.standard.set(stripBoxDrawing, forKey: Key.stripBoxDrawing) } }
     var unwrapHardWrapped: Bool { didSet { UserDefaults.standard.set(unwrapHardWrapped, forKey: Key.unwrapHardWrapped) } }
+    var dedentCommonLeadingWhitespace: Bool { didSet { UserDefaults.standard.set(dedentCommonLeadingWhitespace, forKey: Key.dedentCommonLeadingWhitespace) } }
     var autoWatch: Bool { didSet { UserDefaults.standard.set(autoWatch, forKey: Key.autoWatch) } }
 
     private init() {
@@ -30,6 +32,7 @@ final class SettingsStore {
             Key.collapseBlankRuns: false,
             Key.stripBoxDrawing: false,
             Key.unwrapHardWrapped: true,
+            Key.dedentCommonLeadingWhitespace: true,
             Key.autoWatch: false,
         ])
         self.stripAnsi = d.bool(forKey: Key.stripAnsi)
@@ -37,6 +40,7 @@ final class SettingsStore {
         self.collapseBlankRuns = d.bool(forKey: Key.collapseBlankRuns)
         self.stripBoxDrawing = d.bool(forKey: Key.stripBoxDrawing)
         self.unwrapHardWrapped = d.bool(forKey: Key.unwrapHardWrapped)
+        self.dedentCommonLeadingWhitespace = d.bool(forKey: Key.dedentCommonLeadingWhitespace)
         self.autoWatch = d.bool(forKey: Key.autoWatch)
     }
 
@@ -46,7 +50,8 @@ final class SettingsStore {
             normalizeBlankLines: normalizeBlankLines,
             collapseBlankRuns: collapseBlankRuns,
             stripBoxDrawing: stripBoxDrawing,
-            unwrapHardWrapped: unwrapHardWrapped
+            unwrapHardWrapped: unwrapHardWrapped,
+            dedentCommonLeadingWhitespace: dedentCommonLeadingWhitespace
         )
     }
 }

@@ -47,6 +47,7 @@ Default-on (toggleable):
 - ANSI escape codes (`\x1B[…m` color sequences, OSC, charset switches).
 - Outer blank lines (leading/trailing empty lines of the paste).
 - Space-only lines collapse to true empty lines (this is implicit once trailing whitespace is stripped).
+- Common left padding from every non-empty line.
 
 Default-off (toggleable in Settings):
 
