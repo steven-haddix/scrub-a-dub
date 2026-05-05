@@ -18,17 +18,17 @@ trap 'rm -f "$TMP_ZIP"' EXIT
 
 if [[ -n "${NOTARY_PROFILE:-}" ]]; then
   xcrun notarytool submit "$TMP_ZIP" --keychain-profile "$NOTARY_PROFILE" --wait
-elif [[ -n "${APP_STORE_CONNECT_API_KEY_P8:-}" && -n "${APP_STORE_CONNECT_KEY_ID:-}" && -n "${APP_STORE_CONNECT_ISSUER_ID:-}" ]]; then
+elif [[ -n "${APP_STORE_CONNECT_API_KEY_P8:-}" && -n "${APP_STORE_CONNECT_KEY_ID:-}" ]]; then
   API_KEY_FILE="$(mktemp -t scrubadub-notary-key).p8"
   trap 'rm -f "$TMP_ZIP" "$API_KEY_FILE"' EXIT
   printf '%s' "$APP_STORE_CONNECT_API_KEY_P8" | sed 's/\\n/\n/g' > "$API_KEY_FILE"
-  xcrun notarytool submit "$TMP_ZIP" \
-    --key "$API_KEY_FILE" \
-    --key-id "$APP_STORE_CONNECT_KEY_ID" \
-    --issuer "$APP_STORE_CONNECT_ISSUER_ID" \
-    --wait
+  args=(--key "$API_KEY_FILE" --key-id "$APP_STORE_CONNECT_KEY_ID")
+  if [[ -n "${APP_STORE_CONNECT_ISSUER_ID:-}" ]]; then
+    args+=(--issuer "$APP_STORE_CONNECT_ISSUER_ID")
+  fi
+  xcrun notarytool submit "$TMP_ZIP" "${args[@]}" --wait
 else
-  printf 'ERROR: set NOTARY_PROFILE or APP_STORE_CONNECT_API_KEY_P8/KEY_ID/ISSUER_ID for notarization.\n' >&2
+  printf 'ERROR: set NOTARY_PROFILE or APP_STORE_CONNECT_API_KEY_P8/KEY_ID for notarization.\n' >&2
   exit 1
 fi
 

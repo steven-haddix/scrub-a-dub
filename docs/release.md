@@ -29,7 +29,7 @@ Required repository secrets for public notarized releases:
 - `DEVELOPER_ID_APPLICATION`: full codesign identity, for example `Developer ID Application: Your Name (TEAMID)`
 - `APP_STORE_CONNECT_API_KEY_P8`: App Store Connect API key contents
 - `APP_STORE_CONNECT_KEY_ID`: App Store Connect key id
-- `APP_STORE_CONNECT_ISSUER_ID`: App Store Connect issuer id
+- `APP_STORE_CONNECT_ISSUER_ID`: App Store Connect issuer id; required for Team API keys, omit for Individual API keys
 - `HOMEBREW_TAP_TOKEN`: fine-grained token with write access to the tap repo, only needed when `publish_tap` is enabled
 
 To create `APPLE_DEVELOPER_ID_CERTIFICATE_BASE64`:

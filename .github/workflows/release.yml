@@ -58,7 +58,7 @@ jobs:
       SHOULD_PUBLISH_TAP: ${{ github.event.inputs.publish_tap }}
       TAP_REPOSITORY: ${{ github.event.inputs.tap_repository }}
       HAS_SIGNING_SECRETS: ${{ secrets.APPLE_DEVELOPER_ID_CERTIFICATE_BASE64 != '' && secrets.APPLE_DEVELOPER_ID_CERTIFICATE_PASSWORD != '' && secrets.DEVELOPER_ID_APPLICATION != '' }}
-      HAS_NOTARY_SECRETS: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 != '' && secrets.APP_STORE_CONNECT_KEY_ID != '' && secrets.APP_STORE_CONNECT_ISSUER_ID != '' }}
+      HAS_NOTARY_SECRETS: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 != '' && secrets.APP_STORE_CONNECT_KEY_ID != '' }}
       HAS_TAP_SECRET: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
 
     steps:
@@ -86,7 +86,7 @@ jobs:
               exit 1
             fi
             if [[ "$HAS_NOTARY_SECRETS" != "true" ]]; then
-              echo "Notarized releases require APP_STORE_CONNECT_API_KEY_P8, APP_STORE_CONNECT_KEY_ID, and APP_STORE_CONNECT_ISSUER_ID secrets." >&2
+              echo "Notarized releases require APP_STORE_CONNECT_API_KEY_P8 and APP_STORE_CONNECT_KEY_ID secrets. APP_STORE_CONNECT_ISSUER_ID is only needed for Team API keys." >&2
               exit 1
             fi
           fi
