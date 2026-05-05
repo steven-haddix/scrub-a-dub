@@ -28,8 +28,7 @@ let package = Package(
         .testTarget(
             name: "ScrubadubCoreTests",
             dependencies: ["ScrubadubCore"],
-            path: "Tests/ScrubadubCoreTests",
-            resources: [.copy("Fixtures")]
+            path: "Tests/ScrubadubCoreTests"
         ),
     ]
 )
