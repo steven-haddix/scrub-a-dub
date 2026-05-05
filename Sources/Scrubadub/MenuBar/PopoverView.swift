@@ -4,6 +4,7 @@ import SwiftUI
 
 struct PopoverView: View {
     @Environment(SettingsStore.self) private var settings
+    @Environment(\.openSettings) private var openSettings
     @State private var lastResult: CleanResult?
     @State private var undoUsed: Bool = false
 
@@ -12,7 +13,10 @@ struct PopoverView: View {
             HStack {
                 Text("Scrubadub").font(.headline)
                 Spacer()
-                SettingsLink {
+                Button {
+                    NSApp.activate()
+                    openSettings()
+                } label: {
                     Image(systemName: "gearshape")
                 }
                 .buttonStyle(.borderless)
