@@ -1,10 +1,12 @@
 # scrub-a-dub
 
+A macOS menu bar utility for cleaning terminal-copied text.
+
 ![scrub-a-dub banner](scrubadub-banner.png)
 
 ![scrub-a-dub screenshot](scrubadub-screenshot.png)
 
-A macOS menu bar utility for cleaning terminal-copied text. Scrubadub strips terminal-width padding, ANSI escape codes, excess outer blank lines, and other paste noise from Claude Code CLI output and similar right-padded terminal text.
+Scrubadub strips terminal-width padding, ANSI escape codes, excess outer blank lines, and other paste noise from Claude Code CLI output and similar right-padded terminal text.
 
 Paste text into the menu bar app, and Scrubadub puts the cleaned version back on your clipboard. The Homebrew install also includes a `scrubadub` CLI for shell pipelines.
 
@@ -24,6 +26,16 @@ The cask installs:
 
 - `Scrubadub.app`, the menu bar app.
 - `scrubadub`, the command-line cleaner.
+
+## Uninstall
+
+If you installed with Homebrew:
+
+```bash
+brew uninstall --cask scrubadub
+```
+
+If you installed from a GitHub release, quit Scrubadub and delete `Scrubadub.app` from Applications.
 
 ## Use the App
 
