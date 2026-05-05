@@ -1,12 +1,18 @@
-# scrub-a-dub 🦆
+# scrub-a-dub
+
+A macOS menu bar utility for cleaning terminal-copied text.
 
 ![scrub-a-dub banner](scrubadub-banner.png)
 
 ![scrub-a-dub screenshot](scrubadub-screenshot.png)
 
-A macOS menu-bar utility that strips terminal-width padding from Claude Code CLI output (and any other right-padded terminal text). Paste in, cleaned text auto-replaces your clipboard, paste out.
+Scrubadub strips terminal-width padding, ANSI escape codes, excess outer blank lines, and other paste noise from Claude Code CLI output and similar right-padded terminal text.
+
+Paste text into the menu bar app, and Scrubadub puts the cleaned version back on your clipboard. The Homebrew install also includes a `scrubadub` CLI for shell pipelines.
 
 ## Install
+
+Scrubadub requires macOS 14 or newer.
 
 Homebrew Cask is the recommended install path:
 
@@ -14,62 +20,136 @@ Homebrew Cask is the recommended install path:
 brew install --cask steven-haddix/tap/scrubadub
 ```
 
-Direct downloads are available from the latest GitHub release.
+You can also download the zipped app from the [latest GitHub release](https://github.com/steven-haddix/scrub-a-dub/releases/latest).
 
-The cask installs the menu bar app and symlinks the CLI as `scrubadub`:
+The cask installs:
+
+- `Scrubadub.app`, the menu bar app.
+- `scrubadub`, the command-line cleaner.
+
+## Uninstall
+
+If you installed with Homebrew:
+
+```bash
+brew uninstall --cask scrubadub
+```
+
+If you installed from a GitHub release, quit Scrubadub and delete `Scrubadub.app` from Applications.
+
+## Use the App
+
+1. Launch Scrubadub from Applications.
+2. Click the menu bar icon.
+3. Paste terminal output into the Scrubadub window.
+4. Paste anywhere else. Your clipboard now contains the cleaned text.
+
+Scrubadub also has an optional clipboard watcher in Settings. When enabled, it silently rewrites the clipboard only when the copied text looks like padded terminal output.
+
+## Use the CLI
+
+The CLI reads UTF-8 text from standard input, writes cleaned text to standard output, and prints cleanup stats to standard error.
 
 ```bash
 pbpaste | scrubadub | pbcopy
 ```
 
-## Quick start
+You can also clean a file:
 
 ```bash
-swift build
-swift run Scrubadub        # launches the menu bar app
-swift test                 # runs the cleaner test suite
+scrubadub < messy-output.txt > clean-output.txt
 ```
 
-CLI usage (no menu bar app, just the cleaner):
-
-```bash
-pbpaste | swift run scrubadub | pbcopy
-```
-
-## What gets cleaned
+## What Gets Cleaned
 
 Always:
 
 - Trailing whitespace on every line.
 
-Default-on (toggleable):
+Default-on:
 
-- ANSI escape codes (`\x1B[…m` color sequences, OSC, charset switches).
-- Outer blank lines (leading/trailing empty lines of the paste).
-- Space-only lines collapse to true empty lines (this is implicit once trailing whitespace is stripped).
+- ANSI escape codes, including color sequences, OSC sequences, and charset switches.
+- Outer blank lines at the beginning and end of the paste.
 - Common left padding from every non-empty line.
+- Hard-wrapped prose rejoined into normal paragraphs.
 
-Default-off (toggleable in Settings):
+Default-off:
 
-- Collapse 3+ consecutive blank lines to 1.
-- Strip box-drawing borders (`╭╮╰╯─│║`) and leading gutter chars.
+- Collapse long runs of blank lines.
+- Strip box-drawing borders and leading gutter characters.
 
-## Project layout
+The menu bar app exposes these settings in the gear menu. The CLI currently uses the default cleaner options.
 
+## Troubleshooting
+
+If macOS blocks the downloaded app, install with Homebrew or open System Settings > Privacy & Security and allow the app from there.
+
+If `scrubadub` is not found after installing the cask, make sure Homebrew's binary directory is on your `PATH`:
+
+```bash
+brew --prefix
 ```
+
+Then check that the cask installed correctly:
+
+```bash
+brew list --cask scrubadub
+```
+
+## Developer Setup
+
+Scrubadub is a Swift Package that requires Swift 6 and macOS 14 or newer.
+
+```bash
+git clone https://github.com/steven-haddix/scrub-a-dub.git
+cd scrub-a-dub
+swift test
+swift run Scrubadub
+```
+
+Run the CLI from source:
+
+```bash
+pbpaste | swift run scrubadub | pbcopy
+```
+
+Build without launching:
+
+```bash
+swift build
+```
+
+## Project Layout
+
+```text
 Sources/
-  ScrubadubCore/   # Pure cleaning library (no I/O, no UI)
-  Scrubadub/       # SwiftUI menu-bar app
-  scrubadub-cli/   # stdin → cleaned stdout
+  ScrubadubCore/   Pure cleaning library with no I/O or UI
+  Scrubadub/       SwiftUI menu bar app
+  scrubadub-cli/   stdin to cleaned stdout command
 Tests/
   ScrubadubCoreTests/
 ```
 
-`ScrubadubCore.Cleaner.clean(input, opts) -> CleanResult` is a pure function. Both the app and the CLI call it.
+`ScrubadubCore.Cleaner.clean(input, options:) -> CleanResult` is a pure function. Both the app and CLI call it, so cleaner behavior should be covered in `ScrubadubCoreTests`.
+
+## Contributing
+
+Small fixes are welcome. A good pull request usually includes:
+
+- A clear description of the user-facing behavior being changed.
+- Focused tests when cleaner behavior changes.
+- Screenshots or notes for visible app changes.
+- Conventional commit-style PR titles, such as `fix: preserve whitespace in code blocks` or `docs: clarify Homebrew installation`.
+
+Before opening a PR, run:
+
+```bash
+swift test
+```
 
 ## Release
 
-Release packaging lives in `Scripts/` and the manual GitHub Actions release flow is documented in `docs/release.md`.
+Release packaging lives in `Scripts/`, and the manual GitHub Actions release flow is documented in [docs/release.md](docs/release.md).
 
 ```bash
 Scripts/package_app.sh release
