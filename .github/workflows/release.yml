@@ -1,4 +1,5 @@
 name: Release
+run-name: Release v${{ inputs.version }} (${{ inputs.draft && 'draft' || 'public' }}, tap=${{ inputs.publish_tap }})
 
 on:
   workflow_dispatch:
