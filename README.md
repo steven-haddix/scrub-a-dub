@@ -87,6 +87,15 @@ Default-off:
 
 The menu bar app exposes these settings in the gear menu. The CLI currently uses the default cleaner options.
 
+## Inspiration
+
+Scrubadub stands on two prior efforts worth checking out on their own:
+
+- **[Trimmy](https://github.com/steipete/Trimmy)** by [Peter Steinberger](https://github.com/steipete) — a tightly-focused macOS menu bar utility that shaped what I wanted Scrubadub to *feel* like to use.
+- **[cleanup-claude-code-paste](https://simonwillison.net/2026/Apr/6/cleanup-claude-code-paste/)** by [Simon Willison](https://simonwillison.net) — a post that named the exact padded-terminal-paste pain I'd been hitting and sketched a fix.
+
+Scrubadub combines those ideas into a native macOS menu bar app and a brew-installable Unix-pipeable CLI, local-only and telemetry-free. Thanks to both for putting their work out where I could learn from it.
+
 ## Troubleshooting
 
 If macOS blocks the downloaded app, install with Homebrew or open System Settings > Privacy & Security and allow the app from there.
